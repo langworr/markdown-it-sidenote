@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Plugin Demonstration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@12/dist/markdown-it.min.js"></script>
+    <script src="../dist/markdown-it-analytical-index.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="header">
+        <h1>markdown-it-analytical-index</h1>
+      </div>
+      <div class="content">
+        <p>
+          This is a minimalist demonstration of the
+          <a href="https://github.com/langworr/markdown-it-analytical-index">
+            markdown-it-analytycal-index
+          </a>
+          plugin.
+        </p>
+        <p>
+          Simply write in the text box below, then click away, and the text will be
+          rendered.
+        </p>
+        <textarea id="inputtext" class="inputtext">
+# Title
+
+Try to write sentences with some keywords in square bracket, e.g. !![symmetry] or !![contrast].
+
+This is a paragraph with !![symmetry] and !![contrast] in it.
+
+You can also write !![symmetry] in the middle of a sentence, like this: "This is a !![symmetry] example."
+
+You can also write about !![cakes] and !![cookies] in the same sentence.
+
+
+<!-- @analytical-index title:"My index", sortOrder:"alphabetical", headingLevel:"4" -->
+
+</textarea>
+        <div id="renderer" class="rendered"></div>
+      </div>
+    </div>
+    <noscript>You need to enable JavaScript to run this app! </noscript>
+    <script>
+      // get elements
+      var inputText = document.getElementById("inputtext")
+      var renderer = document.getElementById("renderer")
+
+      // setup change handler
+      inputText.oninput = handleChange
+      function handleChange(e) {
+        const text = window
+          .markdownit({ html: true })
+          .use(window.markdownitAnalyticalIndex, {
+            title: "Index - Analytical",
+            headingLevel: 4,
+            sortOrder: "alphabetical"
+          })
+          .render(e.target.value)
+        renderer.innerHTML = text
+      }
+
+      // trigger first render
+      inputText.dispatchEvent(new Event("input"))
+    </script>
+  </body>
+</html>
