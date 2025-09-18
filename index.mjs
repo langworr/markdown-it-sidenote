@@ -26,32 +26,34 @@ function render_sidenote_block_open (tokens, idx, options) {
 }
 
 function render_sidenote_block_close () {
-  let outStr
-  outStr = `<script>\nconst refs = document.querySelectAll('sup[id$="-ref"]');\nconst noteId = refId.Replace('-ref','');\nconst note = document.getElementById(noteId);\nif(note) {ref.insertAdjacentElement('afterend', note);}});\n</script>\n`
-  return outStr
+  return `<script>
+document.querySelectorAll('sup[id$="-ref"]').forEach(ref => {
+  const refId = ref.id;
+  const noteId = refId.replace('-ref','');
+  const note = document.getElementById(noteId);
+  if(note) {
+    ref.insertAdjacentElement('afterend', note);
+  }
+});
+</script>\n`
 }
 
 function render_sidenote_open (tokens, idx, options, env, slf) {
-  let outStr
   let id = slf.rules.sidenote_number(tokens, idx, options, env, slf)
 
   if (tokens[idx].meta.subId > 0) id += `:${tokens[idx].meta.subId}`
 
   // outStr = `<span id="sd${id}" stype="float:right; width:20em; margin:0 0 0 0.5em background-color: #f9f9f9; border-left: 3px solid #ccc; font-size: 80% padding: 0.5em; box-sizing: border-box;">\n`
-  outStr = `<span id="sd${id}" class="sidenote">\n`
-  return outStr
+  return  `<span id="sidenote${id}" class="sidenote">\n`
 }
 
 function render_sidenote_close () {
-  let outStr
-  outStr = `<script>\nconst refs = document.querySelectAll('sup[id$="-ref"]');\nconst noteId = refId.Replace('-ref','');\nconst note = document.getElementById(noteId);\nif(note) {ref.insertAdjacentElement('afterend', note);}});\n</script>\n`
-  return outStr
+  return `</span>\n`
 }
 
 function render_sidenote_style () {
   return `<style>
 .sidenote {
-  float: right;
   width: 20em;
   margin: 0 0 0 0.5em;
   background-color: #f9f9f9;
@@ -305,18 +307,18 @@ export default function sidenote_plugin (md) {
       if (list[i].tokens) {
         tokens = []
 
-        const token_po = new state.Token('paragraph_open', 'p', 1)
-        token_po.block = true
-        tokens.push(token_po)
+        // const token_po = new state.Token('paragraph_open', 'p', 1)
+        // token_po.block = true
+        // tokens.push(token_po)
 
         const token_i = new state.Token('inline', '', 0)
         token_i.children = list[i].tokens
         token_i.content = list[i].content
         tokens.push(token_i)
 
-        const token_pc = new state.Token('paragraph_close', 'p', -1)
-        token_pc.block    = true
-        tokens.push(token_pc)
+        // const token_pc = new state.Token('paragraph_close', 'p', -1)
+        // token_pc.block    = true
+        // tokens.push(token_pc)
       } else if (list[i].label) {
         tokens = refTokens[`:${list[i].label}`]
       }
