@@ -1,6 +1,8 @@
+// Process sidenotes
+//
 'use strict'
 
-function render_sidenote_anchor_name (tokens, idx, options, env/*, slf */) {
+function render_sidenote_number (tokens, idx, options, env/*, slf */) {
   const n = Number(tokens[idx].meta.id + 1).toString()
   let prefix = ''
 
@@ -9,54 +11,59 @@ function render_sidenote_anchor_name (tokens, idx, options, env/*, slf */) {
   return prefix + n
 }
 
-function render_sidenote_caption (tokens, idx/*, options, env, slf */) {
-  let n = Number(tokens[idx].meta.id + 1).toString()
-
-  if (tokens[idx].meta.subId > 0) n += `:${tokens[idx].meta.subId}`
-
-  return `[${n}]`
-}
-
 function render_sidenote_ref (tokens, idx, options, env, slf) {
-  const id = slf.rules.sidenote_anchor_name(tokens, idx, options, env, slf)
-  const caption = slf.rules.sidenote_caption(tokens, idx, options, env, slf)
+  const id = slf.rules.sidenote_number(tokens, idx, options, env, slf)
   let refid = id
 
   if (tokens[idx].meta.subId > 0) refid += `:${tokens[idx].meta.subId}`
 
-  return `<sup class="sidenote-ref"><a href="#fn${id}" id="fnref${refid}">${caption}</a></sup>`
+  // return `<sup class="sidenote-ref"><a href="#fn${id}" id="fnref${refid}">${caption}</a></sup>`
+  return `<sup id="sidenote${id}-ref">${id}</sup>`
 }
 
 function render_sidenote_block_open (tokens, idx, options) {
-  return (options.xhtmlOut ? '<hr class="sidenotes-sep" />\n' : '<hr class="sidenotes-sep">\n') +
-         '<section class="sidenotes">\n' +
-         '<ol class="sidenotes-list">\n'
+  return '<!-- sidenote open -->\n'
 }
 
 function render_sidenote_block_close () {
-  return '</ol>\n</section>\n'
+  let outStr
+  outStr = `<script>\nconst refs = document.querySelectAll('sup[id$="-ref"]');\nconst noteId = refId.Replace('-ref','');\nconst note = document.getElementById(noteId);\nif(note) {ref.insertAdjacentElement('afterend', note);}});\n</script>\n`
+  return outStr
 }
 
 function render_sidenote_open (tokens, idx, options, env, slf) {
-  let id = slf.rules.sidenote_anchor_name(tokens, idx, options, env, slf)
+  let outStr
+  let id = slf.rules.sidenote_number(tokens, idx, options, env, slf)
 
   if (tokens[idx].meta.subId > 0) id += `:${tokens[idx].meta.subId}`
 
-  return `<li id="fn${id}" class="sidenote-item">`
+  // outStr = `<span id="sd${id}" stype="float:right; width:20em; margin:0 0 0 0.5em background-color: #f9f9f9; border-left: 3px solid #ccc; font-size: 80% padding: 0.5em; box-sizing: border-box;">\n`
+  outStr = `<span id="sd${id}" class="sidenote">\n`
+  return outStr
 }
 
 function render_sidenote_close () {
-  return '</li>\n'
+  let outStr
+  outStr = `<script>\nconst refs = document.querySelectAll('sup[id$="-ref"]');\nconst noteId = refId.Replace('-ref','');\nconst note = document.getElementById(noteId);\nif(note) {ref.insertAdjacentElement('afterend', note);}});\n</script>\n`
+  return outStr
 }
 
-function render_sidenote_anchor (tokens, idx, options, env, slf) {
-  let id = slf.rules.sidenote_anchor_name(tokens, idx, options, env, slf)
-
-  if (tokens[idx].meta.subId > 0) id += `:${tokens[idx].meta.subId}`
-
-  /* ↩ with escape code to prevent display as Apple Emoji on iOS */
-  return ` <a href="#fnref${id}" class="sidenote-backref">\u21a9\uFE0E</a>`
+function render_sidenote_style () {
+  return `<style>
+.sidenote {
+  float: right;
+  width: 20em;
+  margin: 0 0 0 0.5em;
+  background-color: #f9f9f9;
+  border-left: 3px solid #ccc;
+  font-size: 80%;
+  padding: 0.5em;
+  box-sizing: border-box;
 }
+</style>\n`
+  .trim()
+}
+
 
 export default function sidenote_plugin (md) {
   const parseLinkLabel = md.helpers.parseLinkLabel
@@ -67,22 +74,21 @@ export default function sidenote_plugin (md) {
   md.renderer.rules.sidenote_block_close  = render_sidenote_block_close
   md.renderer.rules.sidenote_open         = render_sidenote_open
   md.renderer.rules.sidenote_close        = render_sidenote_close
-  md.renderer.rules.sidenote_anchor       = render_sidenote_anchor
+  md.renderer.rules.sidenote_style        = render_sidenote_style
 
   // helpers (only used in other rules, no tokens are attached to those)
-  md.renderer.rules.sidenote_caption      = render_sidenote_caption
-  md.renderer.rules.sidenote_anchor_name  = render_sidenote_anchor_name
+  md.renderer.rules.sidenote_number       = render_sidenote_number
 
   // Process sidenote block definition
   function sidenote_def (state, startLine, endLine, silent) {
     const start = state.bMarks[startLine] + state.tShift[startLine]
     const max = state.eMarks[startLine]
 
-    // line should be at least 5 chars - "[^x]:"
+    // line should be at least 5 chars - "[_x]:"
     if (start + 4 > max) return false
 
     if (state.src.charCodeAt(start) !== 0x5B/* [ */) return false
-    if (state.src.charCodeAt(start + 1) !== 0x5E/* ^ */) return false
+    if (state.src.charCodeAt(start + 1) !== 0x5F/* _ */) return false
 
     let pos
 
@@ -165,7 +171,7 @@ export default function sidenote_plugin (md) {
     const start = state.pos
 
     if (start + 2 >= max) return false
-    if (state.src.charCodeAt(start) !== 0x5E/* ^ */) return false
+    if (state.src.charCodeAt(start) !== 0x5F/* _ */) return false
     if (state.src.charCodeAt(start + 1) !== 0x5B/* [ */) return false
 
     const labelStart = start + 2
@@ -176,7 +182,6 @@ export default function sidenote_plugin (md) {
 
     // We found the end of the link, and know for a fact it's a valid link;
     // so all that's left to do is to call tokenizer.
-    //
     if (!silent) {
       if (!state.env.sidenotes) state.env.sidenotes = {}
       if (!state.env.sidenotes.list) state.env.sidenotes.list = []
@@ -214,7 +219,7 @@ export default function sidenote_plugin (md) {
 
     if (!state.env.sidenotes || !state.env.sidenotes.refs) return false
     if (state.src.charCodeAt(start) !== 0x5B/* [ */) return false
-    if (state.src.charCodeAt(start + 1) !== 0x5E/* ^ */) return false
+    if (state.src.charCodeAt(start + 1) !== 0x5F/* _ */) return false
 
     let pos
 
@@ -289,6 +294,8 @@ export default function sidenote_plugin (md) {
     const list = state.env.sidenotes.list
 
     state.tokens.push(new state.Token('sidenote_block_open', '', 1))
+    const token_style = new state.Token('sidenote_style', '', 0)
+    state.tokens.unshift(token_style)
 
     for (let i = 0, l = list.length; i < l; i++) {
       const token_fo = new state.Token('sidenote_open', '', 1)
@@ -322,13 +329,6 @@ export default function sidenote_plugin (md) {
         lastParagraph = state.tokens.pop()
       } else {
         lastParagraph = null
-      }
-
-      const t = list[i].count > 0 ? list[i].count : 1
-      for (let j = 0; j < t; j++) {
-        const token_a = new state.Token('sidenote_anchor', '', 0)
-        token_a.meta = { id: i, subId: j, label: list[i].label }
-        state.tokens.push(token_a)
       }
 
       if (lastParagraph) {
