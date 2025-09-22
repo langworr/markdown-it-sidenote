@@ -17,25 +17,18 @@ function render_sidenote_ref (tokens, idx, options, env, slf) {
 
   if (tokens[idx].meta.subId > 0) refid += `:${tokens[idx].meta.subId}`
 
-  // return `<sup class="sidenote-ref"><a href="#fn${id}" id="fnref${refid}">${caption}</a></sup>`
-  return `<sup id="sidenote${id}-ref">${id}</sup>`
+  console.log('render_sidenote_ref', id, refid)
+  return `<sup id="sidenote${id}">${id}</sup>`
 }
 
 function render_sidenote_block_open (tokens, idx, options) {
+  console.log('render_sidenote_block_open')
   return '<!-- sidenote open -->\n'
 }
 
 function render_sidenote_block_close () {
-  return `<script>
-document.querySelectorAll('sup[id$="-ref"]').forEach(ref => {
-  const refId = ref.id;
-  const noteId = refId.replace('-ref','');
-  const note = document.getElementById(noteId);
-  if(note) {
-    ref.insertAdjacentElement('afterend', note);
-  }
-});
-</script>\n`
+  console.log('render_sidenote_block_close')
+  return '<script>const sidenotes = document.querySelectorAll(".sidenote");sidenotes.forEach(note => {  const id = note.id;const ref = document.querySelector(`sup[id="${id}"]`);if (ref) {ref.insertAdjacentElement("afterend", note);}});</script>'
 }
 
 function render_sidenote_open (tokens, idx, options, env, slf) {
@@ -43,25 +36,30 @@ function render_sidenote_open (tokens, idx, options, env, slf) {
 
   if (tokens[idx].meta.subId > 0) id += `:${tokens[idx].meta.subId}`
 
-  // outStr = `<span id="sd${id}" stype="float:right; width:20em; margin:0 0 0 0.5em background-color: #f9f9f9; border-left: 3px solid #ccc; font-size: 80% padding: 0.5em; box-sizing: border-box;">\n`
+  console.log('render_sidenote_open', id)
   return  `<span id="sidenote${id}" class="sidenote">\n`
 }
 
 function render_sidenote_close () {
+  console.log('render_sidenote_close')
   return `</span>\n`
 }
 
 function render_sidenote_style () {
+  console.log('render_sidenote_style')
   return `<style>
-.sidenote {
-  width: 20em;
-  margin: 0 0 0 0.5em;
-  background-color: #f9f9f9;
-  border-left: 3px solid #ccc;
-  font-size: 80%;
-  padding: 0.5em;
-  box-sizing: border-box;
-}
+    .sidenote {
+    float: right;
+    clear: right;
+    width: 25%;
+    margin: 0 0 0.5rem 1rem;
+    box-sizing: border-box;
+    background: #f9f9fb;
+    border-left: 3px solid #c8c8d0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9em;
+    color: #333;
+  }
 </style>\n`
   .trim()
 }
@@ -242,6 +240,7 @@ export default function sidenote_plugin (md) {
 
     if (!silent) {
       if (!state.env.sidenotes.list) state.env.sidenotes.list = []
+      if (!state.env.sidenotes.tokens) state.env.sidenotes.tokens = []
 
       let sidenoteId
 
@@ -258,6 +257,7 @@ export default function sidenote_plugin (md) {
 
       const token = state.push('sidenote_ref', '', 0)
       token.meta = { id: sidenoteId, subId: sidenoteSubId, label }
+      state.env.sidenotes.tokens.push(token)
     }
 
     state.pos = pos
@@ -342,6 +342,7 @@ export default function sidenote_plugin (md) {
 
     state.tokens.push(new state.Token('sidenote_block_close', '', -1))
   }
+
 
   md.block.ruler.before('reference', 'sidenote_def', sidenote_def, { alt: ['paragraph', 'reference'] })
   md.inline.ruler.after('image', 'sidenote_inline', sidenote_inline)
