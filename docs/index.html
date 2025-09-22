@@ -29,17 +29,17 @@
         <textarea id="inputtext" class="inputtext">
 # Title
 
-Try to write sentences with some keywords in square bracket, e.g. symmetry[_1] or contrast[_2].
+Try to write sentences with some keywords in square bracket, e.g. symmetry[$1] or contrast[$2]. Lorem ipsum dolor sit amet consectetur adipisicing elit. Id a accusantium enim nobis totam provident sequi repudiandae. Delectus quas nostrum est, voluptatum earum reprehenderit iusto asperiores esse possimus labore exercitationem. Lorem ipsum dolor sit amet consectetur adipisicing elit. Praesentium qui voluptatem, delectus provident aliquid eos fugit eaque rerum ea, suscipit numquam, officiis facere itaque consequatur corrupti? Ipsam esse illo rem! Lorem ipsum dolor, sit amet consectetur adipisicing elit. Omnis quo nostrum blanditiis fuga autem iusto nobis modi possimus delectus repellat officia aliquam, quae eligendi molestias amet natus voluptatibus harum. Assumenda?
 
-This is a [_3] second paragraph.
+This is a [$3] second paragraph. Lorem ipsum dolor sit amet consectetur adipisicing elit. Id a accusantium enim nobis totam provident sequi repudiandae. Delectus quas nostrum est, voluptatum earum reprehenderit iusto asperiores esse possimus labore exercitationem. Lorem ipsum dolor sit amet consectetur adipisicing elit. Praesentium qui voluptatem, delectus provident aliquid eos fugit eaque rerum ea, suscipit numquam, officiis facere itaque consequatur corrupti? Ipsam esse illo rem! Lorem ipsum dolor, sit amet consectetur adipisicing elit. Omnis quo nostrum blanditiis fuga autem iusto nobis modi possimus delectus repellat officia aliquam, quae eligendi molestias amet natus voluptatibus harum. Assumenda?
 
-[_1]: This is the first sidenote for **symmetry**.
+[$1]: This is the first sidenote for **symmetry**.
 
-[_2]: This is the second sidenote for **contrast**.
+[$2]: This is the second sidenote for **contrast**.
 
-[_3]: definition of the third sidenote.
+[$3]: definition of the third sidenote.
 
-You can also write the sidenote definition anywhere in the text, for example at the end of the document, or like an inline note right after the reference _[This is the third note for *reference*].
+You can also write the sidenote definition anywhere in the text, for example at the end of the document, or like an inline note right after the reference $[This is the third note for *reference*]. Lorem ipsum dolor sit amet consectetur adipisicing elit. Id a accusantium enim nobis totam provident sequi repudiandae. Delectus quas nostrum est, voluptatum earum reprehenderit iusto asperiores esse possimus labore exercitationem. Lorem ipsum dolor sit amet consectetur adipisicing elit. Praesentium qui voluptatem, delectus provident aliquid eos fugit eaque rerum ea, suscipit numquam, officiis facere itaque consequatur corrupti? Ipsam esse illo rem! Lorem ipsum dolor, sit amet consectetur adipisicing elit. Omnis quo nostrum blanditiis fuga autem iusto nobis modi possimus delectus repellat officia aliquam, quae eligendi molestias amet natus voluptatibus harum. Assumenda?
 
 </textarea>
         <div id="renderer" class="rendered"></div>
@@ -63,6 +63,14 @@ You can also write the sidenote definition anywhere in the text, for example at 
 
       // trigger first render
       inputText.dispatchEvent(new Event("input"))
+        const sidenotes = renderer.querySelectorAll(".sidenote")
+  sidenotes.forEach(note => {
+    const id = note.id
+    const ref = renderer.querySelector(`sup[id="${id}"]`)
+    if (ref) {
+      ref.insertAdjacentElement("afterend", note)
+    }
+  })
     </script>
   </body>
 </html>

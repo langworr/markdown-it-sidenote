@@ -17,18 +17,15 @@ function render_sidenote_ref (tokens, idx, options, env, slf) {
 
   if (tokens[idx].meta.subId > 0) refid += `:${tokens[idx].meta.subId}`
 
-  console.log('render_sidenote_ref', id, refid)
   return `<sup id="sidenote${id}">${id}</sup>`
 }
 
 function render_sidenote_block_open (tokens, idx, options) {
-  console.log('render_sidenote_block_open')
   return '<!-- sidenote open -->\n'
 }
 
-function render_sidenote_block_close () {
-  console.log('render_sidenote_block_close')
-  return '<script>const sidenotes = document.querySelectorAll(".sidenote");sidenotes.forEach(note => {  const id = note.id;const ref = document.querySelector(`sup[id="${id}"]`);if (ref) {ref.insertAdjacentElement("afterend", note);}});</script>'
+function render_sidenote_block_close (tokens) {
+  return '<!-- sidenote close -->\n'
 }
 
 function render_sidenote_open (tokens, idx, options, env, slf) {
@@ -36,17 +33,14 @@ function render_sidenote_open (tokens, idx, options, env, slf) {
 
   if (tokens[idx].meta.subId > 0) id += `:${tokens[idx].meta.subId}`
 
-  console.log('render_sidenote_open', id)
   return  `<span id="sidenote${id}" class="sidenote">\n`
 }
 
 function render_sidenote_close () {
-  console.log('render_sidenote_close')
   return `</span>\n`
 }
 
 function render_sidenote_style () {
-  console.log('render_sidenote_style')
   return `<style>
     .sidenote {
     float: right;
@@ -63,7 +57,6 @@ function render_sidenote_style () {
 </style>\n`
   .trim()
 }
-
 
 export default function sidenote_plugin (md) {
   const parseLinkLabel = md.helpers.parseLinkLabel
@@ -84,11 +77,11 @@ export default function sidenote_plugin (md) {
     const start = state.bMarks[startLine] + state.tShift[startLine]
     const max = state.eMarks[startLine]
 
-    // line should be at least 5 chars - "[_x]:"
+    // line should be at least 5 chars - "[$x]:"
     if (start + 4 > max) return false
 
     if (state.src.charCodeAt(start) !== 0x5B/* [ */) return false
-    if (state.src.charCodeAt(start + 1) !== 0x5F/* _ */) return false
+    if (state.src.charCodeAt(start + 1) !== 0x24/* $ */) return false
 
     let pos
 
@@ -165,13 +158,13 @@ export default function sidenote_plugin (md) {
     return true
   }
 
-  // Process inline sidenotes (^[...])
+  // Process inline sidenotes ($[...])
   function sidenote_inline (state, silent) {
     const max = state.posMax
     const start = state.pos
 
     if (start + 2 >= max) return false
-    if (state.src.charCodeAt(start) !== 0x5F/* _ */) return false
+    if (state.src.charCodeAt(start) !== 0x24/* $ */) return false
     if (state.src.charCodeAt(start + 1) !== 0x5B/* [ */) return false
 
     const labelStart = start + 2
@@ -209,17 +202,17 @@ export default function sidenote_plugin (md) {
     return true
   }
 
-  // Process sidenote references ([^...])
+  // Process sidenote references ([$...])
   function sidenote_ref (state, silent) {
     const max = state.posMax
     const start = state.pos
 
-    // should be at least 4 chars - "[^x]"
+    // should be at least 4 chars - "[$x]"
     if (start + 3 > max) return false
 
     if (!state.env.sidenotes || !state.env.sidenotes.refs) return false
     if (state.src.charCodeAt(start) !== 0x5B/* [ */) return false
-    if (state.src.charCodeAt(start + 1) !== 0x5F/* _ */) return false
+    if (state.src.charCodeAt(start + 1) !== 0x24/* $ */) return false
 
     let pos
 
@@ -307,18 +300,11 @@ export default function sidenote_plugin (md) {
       if (list[i].tokens) {
         tokens = []
 
-        // const token_po = new state.Token('paragraph_open', 'p', 1)
-        // token_po.block = true
-        // tokens.push(token_po)
-
         const token_i = new state.Token('inline', '', 0)
         token_i.children = list[i].tokens
         token_i.content = list[i].content
         tokens.push(token_i)
 
-        // const token_pc = new state.Token('paragraph_close', 'p', -1)
-        // token_pc.block    = true
-        // tokens.push(token_pc)
       } else if (list[i].label) {
         tokens = refTokens[`:${list[i].label}`]
       }
@@ -343,9 +329,9 @@ export default function sidenote_plugin (md) {
     state.tokens.push(new state.Token('sidenote_block_close', '', -1))
   }
 
-
   md.block.ruler.before('reference', 'sidenote_def', sidenote_def, { alt: ['paragraph', 'reference'] })
   md.inline.ruler.after('image', 'sidenote_inline', sidenote_inline)
   md.inline.ruler.after('sidenote_inline', 'sidenote_ref', sidenote_ref)
   md.core.ruler.after('inline', 'sidenote_tail', sidenote_tail)
+
 };
