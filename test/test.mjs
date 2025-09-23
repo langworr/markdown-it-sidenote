@@ -4,7 +4,7 @@ import assert from 'node:assert'
 import markdownit from 'markdown-it'
 import testgen from 'markdown-it-testgen'
 
-import footnote from '../index.mjs'
+import sidenote from '../index.mjs'
 
 // Most of the rest of this is inlined from generate(), but modified
 // so we can pass in an `env` object
@@ -29,16 +29,16 @@ function generate (fixturePath, md, env) {
   })
 }
 
-describe('footnote.txt', function () {
-  const md = markdownit({ linkify: true }).use(footnote)
+describe('sidenote.txt', function () {
+  const md = markdownit({ linkify: true }).use(sidenote)
 
   // Check that defaults work correctly
-  generate(fileURLToPath(new URL('fixtures/footnote.txt', import.meta.url)), md)
+  generate(fileURLToPath(new URL('fixtures/sidenote.txt', import.meta.url)), md)
 })
 
 describe('custom docId in env', function () {
-  const md = markdownit().use(footnote)
+  const md = markdownit().use(sidenote)
 
   // Now check that using `env.documentId` works to prefix IDs
-  generate(fileURLToPath(new URL('fixtures/footnote-prefixed.txt', import.meta.url)), md, { docId: 'test-doc-id' })
+  generate(fileURLToPath(new URL('fixtures/sidenote-prefixed.txt', import.meta.url)), md, { docId: 'test-doc-id' })
 })

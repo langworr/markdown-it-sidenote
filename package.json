@@ -15,7 +15,7 @@
   "scripts": {
     "lint": "eslint .",
     "build": "rollup -c",
-    "test": "npm run lint && npm run build && c8 --exclude dist --exclude test --check-coverage --branches 100 --functions 100 --lines 100 -r text -r html -r lcov mocha \"test/**/*.js\"",
+    "test": "npm run lint && npm run build && c8 --exclude dist --exclude test --check-coverage --branches 100 --functions 100 --lines 100 -r text -r html -r lcov mocha \"test/**/*.mjs\"",
     "prepublishOnly": "npm run lint && npm run build"
   },
   "author": "Roberto Donaglia",
