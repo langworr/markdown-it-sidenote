@@ -2,8 +2,10 @@
 //
 'use strict'
 
+// Returns the sidenote number as a string
+// If env.docId is set, it is included in the id to make it unique across documents
 function render_sidenote_number (tokens, idx, options, env/*, slf */) {
-  const n = Number(tokens[idx].meta.id + 1).toString()
+  const n = Number(tokens[idx].meta.id + 101).toString()
   let prefix = ''
 
   if (typeof env.docId === 'string') prefix = `-${env.docId}-`
@@ -11,35 +13,43 @@ function render_sidenote_number (tokens, idx, options, env/*, slf */) {
   return prefix + n
 }
 
+// Renders the sidenote reference in the text
+// The sidenote itself is rendered at the end of the document
 function render_sidenote_ref (tokens, idx, options, env, slf) {
   const id = slf.rules.sidenote_number(tokens, idx, options, env, slf)
-  let refid = id
+  // let refid = id
 
-  if (tokens[idx].meta.subId > 0) refid += `:${tokens[idx].meta.subId}`
+  // if (tokens[idx].meta.subId > 0) refid += `:${tokens[idx].meta.subId}`
 
   return `<sup id="sidenote${id}">${id}</sup>`
 }
 
+// Renderers for sidenote block (the collection of all sidenotes at the end of the document)
 function render_sidenote_block_open (tokens, idx, options) {
   return '<!-- sidenote open -->\n'
 }
 
+// Not really needed, but for symmetry
 function render_sidenote_block_close (tokens) {
   return '<!-- sidenote close -->\n'
 }
 
+// Renderers for individual sidenotes
 function render_sidenote_open (tokens, idx, options, env, slf) {
   let id = slf.rules.sidenote_number(tokens, idx, options, env, slf)
 
-  if (tokens[idx].meta.subId > 0) id += `:${tokens[idx].meta.subId}`
+  // if (tokens[idx].meta.subId > 0) id += `:${tokens[idx].meta.subId}`
 
   return  `<span id="sidenote${id}" class="sidenote">\n`
 }
 
+// Not really needed, but for symmetry
 function render_sidenote_close () {
   return `</span>\n`
 }
 
+// Renders the CSS style for sidenotes
+// This is added only once, at the start of the document
 function render_sidenote_style () {
   return `<style>
     .sidenote {
@@ -73,6 +83,10 @@ export default function sidenote_plugin (md) {
   md.renderer.rules.sidenote_number       = render_sidenote_number
 
   // Process sidenote block definition
+  // Example:
+  // [$1]:  Here is the sidenote.
+  //        Subsequent lines are indented to show that they
+  //        belong to the same sidenote.
   function sidenote_def (state, startLine, endLine, silent) {
     const start = state.bMarks[startLine] + state.tShift[startLine]
     const max = state.eMarks[startLine]
@@ -159,6 +173,7 @@ export default function sidenote_plugin (md) {
   }
 
   // Process inline sidenotes ($[...])
+  // Example: Here is a sidenote reference,$[Here is the sidenote.]
   function sidenote_inline (state, silent) {
     const max = state.posMax
     const start = state.pos
@@ -203,6 +218,7 @@ export default function sidenote_plugin (md) {
   }
 
   // Process sidenote references ([$...])
+  // Example: Here is a sidenote reference,[$1] and another.[$1]
   function sidenote_ref (state, silent) {
     const max = state.posMax
     const start = state.pos
@@ -245,11 +261,12 @@ export default function sidenote_plugin (md) {
         sidenoteId = state.env.sidenotes.refs[`:${label}`]
       }
 
-      const sidenoteSubId = state.env.sidenotes.list[sidenoteId].count
+      // const sidenoteSubId = state.env.sidenotes.list[sidenoteId].count
       state.env.sidenotes.list[sidenoteId].count++
 
       const token = state.push('sidenote_ref', '', 0)
-      token.meta = { id: sidenoteId, subId: sidenoteSubId, label }
+      // token.meta = { id: sidenoteId, subId: sidenoteSubId, label }
+      token.meta = { id: sidenoteId, label }
       state.env.sidenotes.tokens.push(token)
     }
 
@@ -328,10 +345,13 @@ export default function sidenote_plugin (md) {
 
     state.tokens.push(new state.Token('sidenote_block_close', '', -1))
   }
+   function debug (state) {
+    console.log(state)
+   }
 
   md.block.ruler.before('reference', 'sidenote_def', sidenote_def, { alt: ['paragraph', 'reference'] })
   md.inline.ruler.after('image', 'sidenote_inline', sidenote_inline)
   md.inline.ruler.after('sidenote_inline', 'sidenote_ref', sidenote_ref)
   md.core.ruler.after('inline', 'sidenote_tail', sidenote_tail)
-
+  md.core.ruler.push('debug_log', debug)
 };

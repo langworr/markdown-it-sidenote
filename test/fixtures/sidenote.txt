@@ -439,18 +439,25 @@ False identifiers
 
 This is a 1 false $[note
 
-This is a 2 false [^ref].
+[$]: false note 2
 
-This is a 3 false [$ ref].
+[$ 3]: false note 3
 
-This is a 4 false [$
-]
+[$
+]: false note 4
+
+[$5]
+
+[$6]:
+
+[$7]:\t\tfoo
 .
 <p>[^this is a false block]</p>
 <p>[$]:</p>
 <p>This is a 1 false $[note</p>
-<p>This is a 2 false [^ref].</p>
-<p>This is a 3 false [$ ref].</p>
-<p>This is a 4 false [$
-]</p>
+<p>[$]: false note 2</p>
+<p>[$ 3]: false note 3</p>
+<p>[$
+]: false note 4</p>
+<p>[$5]</p>
 .
