@@ -5,7 +5,8 @@
 // Returns the sidenote number as a string
 // If env.docId is set, it is included in the id to make it unique across documents
 function render_sidenote_number (tokens, idx, options, env/*, slf */) {
-  const n = Number(tokens[idx].meta.id + 101).toString()
+  // const n = Number(tokens[idx].meta.id + 101).toString()
+  const n = Number(101).toString()
   let prefix = ''
 
   if (typeof env.docId === 'string') prefix = `-${env.docId}-`
@@ -112,12 +113,11 @@ export default function sidenote_plugin (md) {
     pos++
 
     if (!state.env.sidenotes) state.env.sidenotes = {}
-    if (!state.env.sidenotes.refs) state.env.sidenotes.refs = {}
-    const label = state.src.slice(start + 2, pos - 2)
-    state.env.sidenotes.refs[`:${label}`] = -1
+    if (!state.env.sidenoteslength) state.env.sidenoteslength = 0
+    const title = state.src.slice(start + 2, pos - 2)
 
     const token_fref_o = new state.Token('sidenote_reference_open', '', 1)
-    token_fref_o.meta  = { label }
+    token_fref_o.meta  = { title }
     token_fref_o.level = state.level++
     state.tokens.push(token_fref_o)
 
@@ -192,8 +192,8 @@ export default function sidenote_plugin (md) {
     // so all that's left to do is to call tokenizer.
     if (!silent) {
       if (!state.env.sidenotes) state.env.sidenotes = {}
-      if (!state.env.sidenotes.list) state.env.sidenotes.list = []
-      const sidenoteId = state.env.sidenotes.list.length
+      if (!state.env.sidenoteslength) state.env.sidenoteslength = 0
+      let title = String(++state.env.sidenoteslength)
       const tokens = []
 
       state.md.inline.parse(
@@ -204,12 +204,12 @@ export default function sidenote_plugin (md) {
       )
 
       const token = state.push('sidenote_ref', '', 0)
-      token.meta = { id: sidenoteId }
+      // token.meta = { title: title }
 
-      state.env.sidenotes.list[sidenoteId] = {
-        content: state.src.slice(labelStart, labelEnd),
-        tokens
+      if (title in state.env.sidenotes) {
+        title += ":"
       }
+      state.env.sidenotes[title] = state.src.slice(labelStart, labelEnd)
     }
 
     state.pos = labelEnd + 1
@@ -226,7 +226,8 @@ export default function sidenote_plugin (md) {
     // should be at least 4 chars - "[$x]"
     if (start + 3 > max) return false
 
-    if (!state.env.sidenotes || !state.env.sidenotes.refs) return false
+    if (!state.env.sidenotes ) state.env.sidenotes = {}
+    if (!state.env.sidenoteslength) state.env.sidenoteslength = 0
     if (state.src.charCodeAt(start) !== 0x5B/* [ */) return false
     if (state.src.charCodeAt(start + 1) !== 0x24/* $ */) return false
 
@@ -244,30 +245,17 @@ export default function sidenote_plugin (md) {
     if (pos >= max) return false
     pos++
 
-    const label = state.src.slice(start + 2, pos - 1)
-    if (typeof state.env.sidenotes.refs[`:${label}`] === 'undefined') return false
+    const title = state.src.slice(start + 2, pos - 1)
 
     if (!silent) {
-      if (!state.env.sidenotes.list) state.env.sidenotes.list = []
-      if (!state.env.sidenotes.tokens) state.env.sidenotes.tokens = []
-
-      let sidenoteId
-
-      if (state.env.sidenotes.refs[`:${label}`] < 0) {
-        sidenoteId = state.env.sidenotes.list.length
-        state.env.sidenotes.list[sidenoteId] = { label, count: 0 }
-        state.env.sidenotes.refs[`:${label}`] = sidenoteId
-      } else {
-        sidenoteId = state.env.sidenotes.refs[`:${label}`]
+      if (!state.env.sidenotes) state.env.sidenotes = {}
+      if (!state.env.sidenoteslength) state.env.sidenoteslength = 0
+      if (!(title in state.env.sidenotes)) {
+        state.env.sidenotes[title] = ''
+        state.env.sidenoteslength++
       }
-
-      // const sidenoteSubId = state.env.sidenotes.list[sidenoteId].count
-      state.env.sidenotes.list[sidenoteId].count++
-
       const token = state.push('sidenote_ref', '', 0)
-      // token.meta = { id: sidenoteId, subId: sidenoteSubId, label }
-      token.meta = { id: sidenoteId, label }
-      state.env.sidenotes.tokens.push(token)
+      // token.meta = { title: title }
     }
 
     state.pos = pos

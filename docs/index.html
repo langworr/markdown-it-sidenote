@@ -26,7 +26,7 @@
           Simply write in the text box below, then click away, and the text will be
           rendered.
         </p>
-        <textarea id="inputtext" class="inputtext">
+<!--
 # Title
 
 Try to write sentences with some keywords in square bracket, e.g. symmetry[$1] or contrast[$2]. Lorem ipsum dolor sit amet consectetur adipisicing elit. Id a accusantium enim nobis totam provident sequi repudiandae. Delectus quas nostrum est, voluptatum earum reprehenderit iusto asperiores esse possimus labore exercitationem. Lorem ipsum dolor sit amet consectetur adipisicing elit. Praesentium qui voluptatem, delectus provident aliquid eos fugit eaque rerum ea, suscipit numquam, officiis facere itaque consequatur corrupti? Ipsam esse illo rem! Lorem ipsum dolor, sit amet consectetur adipisicing elit. Omnis quo nostrum blanditiis fuga autem iusto nobis modi possimus delectus repellat officia aliquam, quae eligendi molestias amet natus voluptatibus harum. Assumenda?
@@ -40,6 +40,16 @@ This is a [$3] second paragraph. Lorem ipsum dolor sit amet consectetur adipisic
 [$3]: definition of the third sidenote.
 
 You can also write the sidenote definition anywhere in the text, for example at the end of the document, or like an inline note right after the reference $[This is the third note for *reference*]. Lorem ipsum dolor sit amet consectetur adipisicing elit. Id a accusantium enim nobis totam provident sequi repudiandae. Delectus quas nostrum est, voluptatum earum reprehenderit iusto asperiores esse possimus labore exercitationem. Lorem ipsum dolor sit amet consectetur adipisicing elit. Praesentium qui voluptatem, delectus provident aliquid eos fugit eaque rerum ea, suscipit numquam, officiis facere itaque consequatur corrupti? Ipsam esse illo rem! Lorem ipsum dolor, sit amet consectetur adipisicing elit. Omnis quo nostrum blanditiis fuga autem iusto nobis modi possimus delectus repellat officia aliquam, quae eligendi molestias amet natus voluptatibus harum. Assumenda?
+-->
+        <textarea id="inputtext" class="inputtext">
+this is a paragraph with[$1] inline references[$1] and some cookies[$2]
+
+this is another paragraph$[paragraph is an old red wine]
+
+[$1]: ciccio
+
+[$2]: pluto pippo e **paperino**
+
 
 </textarea>
         <div id="renderer" class="rendered"></div>
