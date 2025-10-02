@@ -17,12 +17,8 @@ function render_sidenote_number (tokens, idx, options, env/*, slf */) {
 // Renders the sidenote reference in the text
 // The sidenote itself is rendered at the end of the document
 function render_sidenote_ref (tokens, idx, options, env, slf) {
-  const id = slf.rules.sidenote_number(tokens, idx, options, env, slf)
-  // let refid = id
-
-  // if (tokens[idx].meta.subId > 0) refid += `:${tokens[idx].meta.subId}`
-
-  return `<sup id="sidenote${id}">${id}</sup>`
+  const title = tokens[idx].meta.title
+  return `<sup id="sidenote${title}">${title}</sup>`
 }
 
 // Renderers for sidenote block (the collection of all sidenotes at the end of the document)
@@ -106,8 +102,7 @@ export default function sidenote_plugin (md) {
     if (pos === start + 2 || pos + 1 >= max || state.src.charCodeAt(++pos) !== 0x3A /* : */) return false
     if (silent) return true
 
-    if (!state.env.sidenotes) state.env.sidenotes = {}
-    if (!state.env.sidenoteslength) state.env.sidenoteslength = 0
+    if (!state.env.sidenotes) state.env.sidenotes = []
     const title = state.src.slice(start + 2, pos - 2)
 
     const token_fref_o = new state.Token('sidenote_reference_open', '', 1)
@@ -185,9 +180,12 @@ export default function sidenote_plugin (md) {
     // We found the end of the link, and know for a fact it's a valid link;
     // so all that's left to do is to call tokenizer.
     if (!silent) {
-      if (!state.env.sidenotes) state.env.sidenotes = {}
-      if (!state.env.sidenoteslength) state.env.sidenoteslength = 0
-      let title = String(++state.env.sidenoteslength)
+      if (!state.env.sidenotes) state.env.sidenotes = []
+      let title = String(state.env.sidenotes.length + 1)
+      if ( state.env.sidenotes.includes(title) ) {
+        title += ":"
+      }
+      state.env.sidenotes.push(title)
       const tokens = []
 
       state.md.inline.parse(
@@ -197,13 +195,9 @@ export default function sidenote_plugin (md) {
         tokens
       )
 
-      const token = state.push('sidenote_ref', '', 0)
-      // token.meta = { title: title }
-
-      if (title in state.env.sidenotes) {
-        title += ":"
-      }
-      state.env.sidenotes[title] = state.src.slice(labelStart, labelEnd)
+      const token = new state.Token('sidenote_ref', '', 1)
+      token.meta = { title: title }
+      state.tokens.push(token)
     }
 
     state.pos = labelEnd + 1
@@ -221,7 +215,6 @@ export default function sidenote_plugin (md) {
     if (start + 3 > max) return false
 
     if (!state.env.sidenotes ) state.env.sidenotes = {}
-    if (!state.env.sidenoteslength) state.env.sidenoteslength = 0
     if (state.src.charCodeAt(start) !== 0x5B/* [ */) return false
     if (state.src.charCodeAt(start + 1) !== 0x24/* $ */) return false
 
@@ -242,14 +235,13 @@ export default function sidenote_plugin (md) {
     const title = state.src.slice(start + 2, pos - 1)
 
     if (!silent) {
-      if (!state.env.sidenotes) state.env.sidenotes = {}
-      if (!state.env.sidenoteslength) state.env.sidenoteslength = 0
-      if (!(title in state.env.sidenotes)) {
-        state.env.sidenotes[title] = ''
-        state.env.sidenoteslength++
+      if (!state.env.sidenotes) state.env.sidenotes = []
+      if (!(state.env.sidenotes.includes(title))) {
+        state.env.sidenotes.push(title)
       }
-      const token = state.push('sidenote_ref', '', 0)
-      // token.meta = { title: title }
+      const token = new state.Token('sidenote_ref', '', 0)
+      token.meta = { title: title }
+      state.tokens.push(token)
     }
 
     state.pos = pos
@@ -334,6 +326,6 @@ export default function sidenote_plugin (md) {
   md.block.ruler.before('reference', 'sidenote_def', sidenote_def, { alt: ['paragraph', 'reference'] })
   md.inline.ruler.after('image', 'sidenote_inline', sidenote_inline)
   md.inline.ruler.after('sidenote_inline', 'sidenote_ref', sidenote_ref)
-  md.core.ruler.after('inline', 'sidenote_tail', sidenote_tail)
+  // md.core.ruler.after('inline', 'sidenote_tail', sidenote_tail)
   md.core.ruler.push('debug_log', debug)
 };
