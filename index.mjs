@@ -94,23 +94,17 @@ export default function sidenote_plugin (md) {
 
     // line should be at least 5 chars - "[$x]:"
     if (start + 4 > max) return false
-
     if (state.src.charCodeAt(start) !== 0x5B/* [ */) return false
     if (state.src.charCodeAt(start + 1) !== 0x24/* $ */) return false
 
-    let pos
-
-    for (pos = start + 2; pos < max; pos++) {
+    let pos = start + 2
+    while (pos < max && state.src.charCodeAt(pos) !== 0x5D /* ] */) {
       if (state.src.charCodeAt(pos) === 0x20) return false
-      if (state.src.charCodeAt(pos) === 0x5D /* ] */) {
-        break
-      }
+      pos++
     }
 
-    if (pos === start + 2) return false // no empty sidenote labels
-    if (pos + 1 >= max || state.src.charCodeAt(++pos) !== 0x3A /* : */) return false
+    if (pos === start + 2 || pos + 1 >= max || state.src.charCodeAt(++pos) !== 0x3A /* : */) return false
     if (silent) return true
-    pos++
 
     if (!state.env.sidenotes) state.env.sidenotes = {}
     if (!state.env.sidenoteslength) state.env.sidenoteslength = 0
