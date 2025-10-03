@@ -2,6 +2,48 @@
 //
 'use strict'
 
+
+// Generates a style string for the sidenote CSS
+// according to the provided parameters
+function style_str (type, parameters) {
+  let style_sidenote = ''
+  style_sidenote += 'float: right;'
+  style_sidenote += 'clear: right;'
+  style_sidenote += 'width:' + parameters.width + ';'
+  style_sidenote += 'margin:' + parameters.margin + ';'
+  style_sidenote += 'box-sizing: border-box;'
+  style_sidenote += 'background-color:' + parameters.background + ';'
+  style_sidenote += 'border-left: 3px solid ' + parameters.borderLeftColor + ';'
+  style_sidenote += 'padding: ' + parameters.padding + ';'
+  style_sidenote += 'font-size: ' + parameters.fontSize + ';'
+
+  let style_ref = ''
+  style_ref += 'color: inherit;'
+  style_ref += 'transition: color 0.2s;'
+  
+  let style_ref_hover = ''
+  style_ref_hover += 'color: ' + parameters.colorRef + ';'
+
+  if (type === 'sidenote') return style_sidenote
+  if (type === 'ref') return style_ref
+  if (type === 'ref_hover') return style_ref_hover
+  if (type === 'all') {
+    return `<style>
+      .sidenote {
+        ${style_sidenote}
+      }
+      .sn-pair sup {
+        ${style_ref}
+      }
+      .sn-pair:hover sup {
+        ${style_ref_hover}
+      }
+    </style>\n`
+  }
+
+  return ''
+}
+
 // Renders the sidenote reference in the text
 // The sidenote itself is rendered at the end of the document
 function render_sidenote_ref (tokens, idx, options, env, slf) {
@@ -24,32 +66,33 @@ function render_sidenote_close () {
 
 // Renders the CSS style for sidenotes
 // This is added only once, at the start of the document
-function render_sidenote_style () {
-  return `<style>
-    .sidenote {
-    float: right;
-    clear: right;
-    width: 25%;
-    margin: 0 0 0.5rem 1rem;
-    box-sizing: border-box;
-    background: #f9f9fb;
-    border-left: 3px solid #c8c8d0;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.9em;
-    color: #333;
-  }
-</style>\n`
-  .trim()
+function render_sidenote_style (tokens, idx, options, env, slf) {
+  const params = tokens[idx].meta.parameters || options.parameters
+  return style_str('all', params)
 }
 
-export default function sidenote_plugin (md) {
+export default function sidenote_plugin (md, options) {
   const parseLinkLabel = md.helpers.parseLinkLabel
   const isSpace = md.utils.isSpace
 
-  md.renderer.rules.sidenote_ref          = render_sidenote_ref
-  md.renderer.rules.sidenote_open         = render_sidenote_open
-  md.renderer.rules.sidenote_close        = render_sidenote_close
-  // md.renderer.rules.sidenote_style        = render_sidenote_style
+  options = options || {}
+  const paramSidenoteStart = options.paramMarkerStart || '<!-- @sidenote'
+  const paramSidenoteEnd = options.paramMarkerEnd || '-->'
+  const parameters = {
+    marker: options.marker || '$',
+    inlineOnly: options.inlineOnly || false,
+    width: options.width || '20ch',
+    margin: options.margin || '0 0 0.2em 0.1em',
+    background: options.background || 'rgba(128, 128, 128, 0.18)',
+    borderLeftColor: options.borderLeftColor || 'rgba(128, 128, 128, 0.75)',
+    padding: options.padding || '0.2em 0.2em',
+    fontSize: options.fontSize || '0.8em',
+    colorRef: options.colorRef || 'red'
+  }
+  // md.renderer.rules.sidenote_ref          = render_sidenote_ref
+  // md.renderer.rules.sidenote_open         = render_sidenote_open
+  // md.renderer.rules.sidenote_close        = render_sidenote_close
+  md.renderer.rules.sidenote_style        = render_sidenote_style
 
   // Process sidenote block definition
   // Example:
@@ -142,36 +185,68 @@ export default function sidenote_plugin (md) {
     const max = state.posMax
     const start = state.pos
 
-    if (start + 2 >= max) return false
-    if (state.src.charCodeAt(start) !== 0x24/* $ */) return false
+    if (start + 1 + parameters.marker.length >= max) return false
+    if (state.src.slice(start, start + parameters.marker.length) !== parameters.marker) return false
     if (state.src.charCodeAt(start + 1) !== 0x5B/* [ */) return false
 
-    const labelStart = start + 2
-    const labelEnd = parseLinkLabel(state, start + 1)
-
-    // parser failed to find ']', so it's not a valid note
+    const labelStart = start + 1 + parameters.marker.length
+    const labelEnd = parseLinkLabel(state, start + parameters.marker.length)
     if (labelEnd < 0) return false
 
-    // We found the end of the link, and know for a fact it's a valid link;
-    // so all that's left to do is to call tokenizer.
+    // Check if the note is not empty.
+    const note = state.src.slice(labelStart, labelEnd).trim()
+    if (!note) return false
+
+    // If is not silent, parse the note content
     if (!silent) {
       if (!state.env.sidenotes) state.env.sidenotes = []
+      // Generate a title for the sidenote, in the inline case we use
+      // a number based on the number of existing sidenotes.
       let title = String(state.env.sidenotes.length + 1)
+      // Ensure unique titles
       if ( state.env.sidenotes.includes(title) ) {
         title += ":"
       }
       state.env.sidenotes.push(title)
-      const tokens = []
 
+      // apertura span wrapper
+      const wrapperOpen = state.push('sidenote_wrapper_open', 'span', 1)
+      wrapperOpen.attrPush(['class', 'sn-pair'])
+      // wrapperOpen.level = state.level++
+
+      // sup
+      const supOpen = state.push('sidenote_sup_open', 'sup', 1)
+      // supOpen.level = state.level++
+      const supText = state.push('text', '', 0)
+      supText.level = state.level
+      supText.content = title
+      const supClose = state.push('sidenote_sup_close', 'sup', -1)
+      // supClose.level = state.level--
+
+      // apertura span nota
+      const noteOpen = state.push('sidenote_note_open', 'span', 1)
+      noteOpen.attrPush(['class', 'sidenote'])
+      // noteOpen.level = state.level++
+
+      // contenuto della nota (inline parse)
+      const tokens = []
       state.md.inline.parse(
         state.src.slice(labelStart, labelEnd),
         state.md,
         state.env,
         tokens
       )
+      for (let i = 0; i < tokens.length; i++) {
+        state.tokens.push(tokens[i])
+      }
 
-      const token = state.push('sidenote_ref', '', 0)
-      token.meta = { title }
+      // chiusura span nota
+      const noteClose = state.push('sidenote_note_close', 'span', -1)
+      // noteClose.level = state.level--
+
+      // chiusura span wrapper
+      const wrapperClose = state.push('sidenote_wrapper_close', 'span', -1)
+      // wrapperClose.level = state.level--
     }
 
     state.pos = labelEnd + 1
@@ -225,8 +300,9 @@ export default function sidenote_plugin (md) {
   // Inject the CSS style for sidenotes
   function sidenote_css (state, silent) {
     if (!silent) {
-      const token = state.push('sidenote_style', '', 0)
-      token.meta = {}
+      const token = new state.Token('sidenote_style', '', 0)
+      token.meta = { parameters }
+      state.tokens.push(token)
     }
     return false
   }
@@ -235,8 +311,12 @@ export default function sidenote_plugin (md) {
     console.log(state)
    }
 
-  md.block.ruler.before('reference', 'sidenote_def', sidenote_def, { alt: ['paragraph', 'reference'] })
   md.inline.ruler.after('image', 'sidenote_inline', sidenote_inline)
-  md.inline.ruler.after('sidenote_inline', 'sidenote_ref', sidenote_ref)
+  md.block.ruler.before('reference', 'sidenote_css', sidenote_css)
+
+  // md.block.ruler.before('reference', 'sidenote_def', sidenote_def, { alt: ['paragraph', 'reference'] })
+  // md.inline.ruler.after('sidenote_inline', 'sidenote_ref', sidenote_ref)
   md.core.ruler.push('debug_log', debug)
 };
+
+// CSS da mettere a posto
