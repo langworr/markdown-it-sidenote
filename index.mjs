@@ -89,10 +89,45 @@ export default function sidenote_plugin (md, options) {
     fontSize: options.fontSize || '0.8em',
     colorRef: options.colorRef || 'red'
   }
+  const regex = /(\w+):"([^"]*)"/g;
   // md.renderer.rules.sidenote_ref          = render_sidenote_ref
   // md.renderer.rules.sidenote_open         = render_sidenote_open
   // md.renderer.rules.sidenote_close        = render_sidenote_close
   md.renderer.rules.sidenote_style        = render_sidenote_style
+
+  // Process the parameters for sidenotes
+  // Example: <!-- @sidenote marker:"$" width:"20ch" margin:"0 0 0.2em 0.1em" background:"rgba(128, 128, 128, 0.18)" borderLeftColor:"rgba(128, 128, 128, 0.75)" padding:"0.2em 0.2em" fontSize:"0.8em" colorRef:"red" -->
+  // The parameters can be in any order and are all optional.
+  function sidenote_params (state, startLine, endLine, silent) {
+    const start = state.bMarks[startLine] + state.tShift[startLine]
+    const max = state.eMarks[startLine]
+
+    // The line must start and end with the analytical index marker.
+    if (state.src.slice(start, start + paramSidenoteStart.length) !== paramSidenoteStart ||
+        state.src.slice(max - paramSidenoteEnd.length, max) !== paramSidenoteEnd) {
+      return false
+    }
+    // If silent, we only check if the analytical index marker is present.
+    if (silent) return true
+
+    const pars = state.src.slice(start + paramSidenoteStart.length, max - paramSidenoteEnd.length)
+    
+    let match;
+    while ((match = regex.exec(pars)) !== null) {
+      const key = match[1];
+      const value = match[2];
+      if (key in parameters) {
+        parameters[key] = value;
+      }
+    }
+
+    if (!state.env.sidenote) state.env.sidenote = parameters
+    else state.env.sidenote = { ...state.env.sidenote, ...parameters }
+
+    state.line = startLine + 1
+    return true 
+
+  }
 
   // Process sidenote block definition
   // Example:
@@ -311,12 +346,14 @@ export default function sidenote_plugin (md, options) {
     console.log(state)
    }
 
-  md.inline.ruler.after('image', 'sidenote_inline', sidenote_inline)
   md.block.ruler.before('reference', 'sidenote_css', sidenote_css)
+  md.inline.ruler.after('image', 'sidenote_inline', sidenote_inline)
+  md.block.ruler.before('fence', 'sidenote_params', sidenote_params, {
+    alt: ['paragraph', 'reference', 'blockquote']})
 
   // md.block.ruler.before('reference', 'sidenote_def', sidenote_def, { alt: ['paragraph', 'reference'] })
   // md.inline.ruler.after('sidenote_inline', 'sidenote_ref', sidenote_ref)
   md.core.ruler.push('debug_log', debug)
 };
 
-// CSS da mettere a posto
+// inserire la modalità di nota a margine di un intero blocco
